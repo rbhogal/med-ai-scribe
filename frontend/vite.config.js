@@ -19,6 +19,6 @@ export default defineConfig({
     host: '0.0.0.0',
     port: Number(process.env.PORT) || 4173,
     strictPort: true,
-    allowedHosts: 'all',
+    allowedHosts: ['med-ai-scribe-frontend-production.up.railway.app'],
   },
 })
