@@ -40,14 +40,21 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() in ("1", "true", "yes")
 
 ALLOWED_HOSTS = ["*"]
 
-# django-cors-headers: comma-separated origins. Empty segments are dropped so
-# CORS_ALLOWED_ORIGINS="" does not become [""] (that fails checks: corsheaders.E013).
-_cors_origins_raw = os.environ.get(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:5173"
-)
-CORS_ALLOWED_ORIGINS = [
-    o.strip() for o in _cors_origins_raw.split(",") if o.strip()
-]
+# django-cors-headers: optional comma-separated CORS_ALLOWED_ORIGINS env
+# overrides these defaults. Empty segments are dropped (avoids corsheaders.E013).
+_cors_env = os.environ.get("CORS_ALLOWED_ORIGINS")
+if _cors_env is not None:
+    CORS_ALLOWED_ORIGINS = [
+        o.strip() for o in _cors_env.split(",") if o.strip()
+    ]
+elif DEBUG:
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:5173",
+    ]
+else:
+    CORS_ALLOWED_ORIGINS = [
+        "https://med-ai-scribe-frontend-production.up.railway.app",
+    ]
 
 
 # Application definition
