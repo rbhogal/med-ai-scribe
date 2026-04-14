@@ -17,6 +17,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Console logging level (e.g. DEBUG, INFO). Used by LOGGING below.
+_log_levels = frozenset({"CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"})
+_log_level = os.environ.get("DJANGO_LOG_LEVEL", "INFO").upper()
+DJANGO_LOG_LEVEL = _log_level if _log_level in _log_levels else "INFO"
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -34,6 +39,15 @@ SECRET_KEY = os.environ.get(
 DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() in ("1", "true", "yes")
 
 ALLOWED_HOSTS = ["*"]
+
+# django-cors-headers: comma-separated origins. Empty segments are dropped so
+# CORS_ALLOWED_ORIGINS="" does not become [""] (that fails checks: corsheaders.E013).
+_cors_origins_raw = os.environ.get(
+    "CORS_ALLOWED_ORIGINS", "http://localhost:5173"
+)
+CORS_ALLOWED_ORIGINS = [
+    o.strip() for o in _cors_origins_raw.split(",") if o.strip()
+]
 
 
 # Application definition
@@ -144,11 +158,6 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# django-cors-headers: comma-separated origins in CORS_ALLOWED_ORIGINS
-CORS_ALLOWED_ORIGINS = os.environ.get(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:5173"
-).split(",")
-
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -160,4 +169,50 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.AllowAny",
     ],
+}
+
+# Logging: Django applies this during startup (see DJANGO_LOG_LEVEL above).
+# With DEBUG=False, the default Django logging config would mostly silence the
+# console handler; this keeps stderr useful in production for debugging.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "console": {
+            "format": "{asctime} {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "console",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": DJANGO_LOG_LEVEL,
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": DJANGO_LOG_LEVEL,
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "django.server": {
+            "handlers": ["console"],
+            "level": DJANGO_LOG_LEVEL,
+            "propagate": False,
+        },
+        "visits": {
+            "handlers": ["console"],
+            "level": DJANGO_LOG_LEVEL,
+            "propagate": False,
+        },
+    },
 }
